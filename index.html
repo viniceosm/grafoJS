@@ -1,0 +1,275 @@
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		<script src="vivagraph.min.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+		<script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+		<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+		<style>
+		#graphDiv > svg{
+			width:100%;
+			height: 60vh;
+			background-color: #E0E0E0;
+		}
+		.cursor-pointer{
+			cursor: pointer;
+		}
+		.row-center{
+			margin: auto;
+		}
+		</style>
+	</head>
+	<body>
+		<div class="container-fluid">
+			<div class="row">
+				<div class="col col-md-6">
+					<div id="accordion" role="tablist" aria-multiselectable="true">
+						<div class="card">
+							<div class="card-header cursor-pointer" role="tab" data-toggle="collapse" data-target="#collapseMatriz" id="modificarGrafo">
+									Modificar Grafo
+									<i class="fa fa-edit" aria-hidden="true"></i>
+							</div>
+
+							<div id="collapseMatriz" class="collapse show" role="tabpanel" aria-labelledby="modificarGrafo">
+								<div class="card-block">
+									<h5>Tabela Distancia</h5>
+
+									<div class="row">
+										<div class="col offset-md-2">
+											<div id="dadosMatriz"></div>
+
+											<div class="row">
+												<div class="col">
+													<button type="button" class="btn btn-primary" id="btnAddLinhaMatriz">
+														Adicionar mais linha
+														<i class="fa fa-plus" aria-hidden="true"></i>
+													</button>
+												</div>
+											</div>
+										</div>
+									</div>
+
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="col col-md-12">
+							<div class="card">
+								<div class="card-header">
+									Melhor caminho de um ponto ao outro
+								</div>
+								<div class="card-block">
+									<div class="row">
+										<div class="col col-xs-1">
+											<input type="number" class="form-control" id="txtOrigem" placeholder="Origem">
+										</div>
+										<div class="col col-xs-1">
+											<input type="number" class="form-control" id="txtDestino" placeholder="Destino">
+										</div>
+									</div>
+									<div class="row">
+										<div class="col">
+											<div style="float:left">Distancia do melhor caminho:</div>
+											<div id="resultadoMelhorCaminho"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="col col-md-6">
+					<div class="card">
+						<div class="card-header">
+							Grafo
+						</div>
+						<div class="card-block">
+							<div id="graphDiv"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script type="text/javascript">
+	window.onload = function() {
+		var grafoMatriz = [	[Infinity, Infinity, 50, Infinity, Infinity],
+							[68, Infinity, Infinity, 7, Infinity],
+							[Infinity, 23, Infinity, Infinity, 11],
+							[Infinity, Infinity, Infinity, Infinity, 5]
+						];
+		document.getElementById("txtOrigem").addEventListener('change', calculaDistancia);
+		document.getElementById("txtDestino").addEventListener('change', calculaDistancia);
+		document.getElementById("btnAddLinhaMatriz").addEventListener('click', addLinhaMatriz);
+
+		var grafoObj = new Grafo(grafoMatriz);
+		grafoObj.listaGrafo();
+		grafoObj.montaMatrizTela();
+
+		function calculaDistancia(){
+			var origem = parseInt(document.getElementById("txtOrigem").value);
+			var destino = parseInt(document.getElementById("txtDestino").value);
+			document.getElementById('resultadoMelhorCaminho').innerHTML = grafoObj.shortestPath(origem, destino);
+		}
+		function addLinhaMatriz(){
+			document.querySelector('#dadosMatriz').innerHTML+=`
+				<div class="row">
+					<div class="col col-xs-1 col-md-2">
+						<input type="text" class="form-control input-sm">
+					</div>
+					<div class="col col-xs-1 col-md-2">
+						<input type="text" class="form-control input-sm">
+					</div>
+					<div class="col col-xs-1 col-md-2">
+						<input type="text" class="form-control input-sm">
+					</div>
+				</div>`;
+		}
+	}
+
+	//Classe Grafo
+	function Grafo(grafoMatriz){
+		this.graph = Viva.Graph.graph();
+		this.grafoMatriz = grafoMatriz;
+	}
+
+	//Retorna o melhor caminho
+	Grafo.prototype.shortestPath = function(start, dest) {
+		let graphArr = this.grafoMatriz;
+		var current = start,
+			queue = [],
+			path = [],
+			currentDistance = 0,
+			visited = [];
+		for (var i = 0; i < graphArr.length; i += 1) {
+			queue[i] = Infinity;
+			visited[i] = false;
+		}
+		queue[start] = 0;
+		do {
+			path.push(current);
+			visited[current] = true;
+			for (i = 0; i < graphArr.length; i += 1) {
+				if (currentDistance + graphArr[current][i] < queue[i]) {
+					queue[i] = currentDistance + graphArr[current][i];
+				}
+			}
+
+			// Could be optimized using fibonacci heap data structure
+			var minDistance = Infinity;
+			current = -1;
+			for (i = 0; i < graphArr.length; i += 1) {
+				if (queue[i] < minDistance && !visited[i]) {
+					current = i;
+					minDistance = queue[i];
+				}
+			}
+			currentDistance = minDistance;
+		} while (current !== dest && current !== -1);
+		if (current !== dest && current !== -1) {
+			return Infinity;
+		}
+		return currentDistance;
+	}
+
+	//Retorna um layout com distancia para o SVG
+	Grafo.prototype.criaLayoutDistancia = function () {
+		var quantidadeNode = this.graph.getNodesCount();
+		var middle = this.graph.getNode(parseInt(quantidadeNode/2));
+		middle.isPinned = true;
+		var idealLength = 90;
+		var layout = Viva.Graph.Layout.forceDirected(this.graph, {
+				springLength: idealLength,
+				springCoeff : 0.0008,
+				gravity : -10,
+				springTransform: function (link, spring) {
+					spring.length = idealLength * (1 - link.data.connectionStrength);
+				}
+		});
+		var middle = this.graph.getNode(parseInt(quantidadeNode/2));
+		layout.pinNode(middle, true);
+
+		return layout;
+	};
+	Grafo.prototype.listaGrafo = function () {
+		let graphArr = this.grafoMatriz;
+		//Adiciona as ligacoes
+		for (var i = 0; i < graphArr.length; i++) {
+			for (var j = 0; j < graphArr[i].length; j++) {
+				if(graphArr[i][j]!=Infinity){
+					this.graph.addLink(i, j, { connectionStrength: graphArr[i][j] });
+				}
+			}
+		}
+
+		var graphics = Viva.Graph.View.svgGraphics();
+
+		graphics.node(function (node) {
+			var ui = Viva.Graph.svg("rect")
+				.attr("width", 15)
+				.attr("height", 15)
+				.attr("id", "no"+node.id)
+				.attr("class", "no")
+				.attr("fill", "#00a2e8");
+			return ui;
+		});
+
+		var layout = this.criaLayoutDistancia();
+		var renderer = Viva.Graph.View.renderer(this.graph, {
+				container: document.getElementById('graphDiv'),
+				graphics  : graphics,
+				layout : layout,
+		});
+		renderer.run();
+
+		var nos = document.querySelectorAll('.no');
+
+		//Coloca os indices de cada ponto
+		for (var i = 0; i < nos.length; i++) {
+			x = parseInt(nos[i].getAttribute('x'))+5;
+			y = parseInt(nos[i].getAttribute('y'))+10;
+			document.querySelectorAll('#graphDiv>svg>g')[0].innerHTML+=`
+				<text font-size="10" x="${x}" y="${y}">${i}</text>
+			`;
+		}
+	};
+	Grafo.prototype.montaMatrizTela = function () {
+		let graphArr = this.grafoMatriz;
+		let html='';
+		for (var i = 0; i < graphArr.length; i++) {
+			html+=`<div class="row">`;
+			for (var j = 0; j < graphArr[i].length; j++) {
+				html+=`
+					<div class="col col-xs-1 col-md-2">
+						<input type="text" class="form-control input-sm"
+							placeholder="[${i}][${j}]"
+							value="${graphArr[i][j]}"
+							id="node_${i}_${j}">
+					</div>`;
+			}
+			html+=`</div>`;
+		}
+		document.querySelector('#dadosMatriz').innerHTML+=html;
+		for (var i = 0; i < graphArr.length; i++) {
+			for (var j = 0; j < graphArr[i].length; j++) {
+				document.querySelector(`#node_${i}_${j}`).addEventListener('change', (e)=>{
+					let valorInput = e.target.value;
+					if(isNaN(valorInput)==false || valorInput=="Infinity"){
+						let aId = e.target.id.split('_');
+						let i = aId[1], j = aId[2];
+						graphArr[i][j] = valorInput;
+
+						document.getElementById('graphDiv').innerHTML=``;
+						this.listaGrafo();
+					}
+				});
+			}
+		}
+	};
+	</script>
+</html>
