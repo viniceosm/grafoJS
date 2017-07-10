@@ -1,5 +1,6 @@
 <html>
 	<head>
+		<title>Grafo</title>
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 		<script src="vivagraph.min.js"></script>
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
@@ -16,15 +17,13 @@
 		.cursor-pointer{
 			cursor: pointer;
 		}
-		.row-center{
-			margin: auto;
-		}
+		.no-padding{ padding: 0; }
 		</style>
 	</head>
 	<body>
 		<div class="container-fluid">
 			<div class="row">
-				<div class="col col-md-6">
+				<div class="col col-12 col-md-6 flex-last">
 					<div id="accordion" role="tablist" aria-multiselectable="true">
 						<div class="card">
 							<div class="card-header cursor-pointer" role="tab" data-toggle="collapse" data-target="#collapseMatriz" id="modificarGrafo">
@@ -37,15 +36,18 @@
 									<h5>Tabela Distancia</h5>
 
 									<div class="row">
-										<div class="col offset-md-2">
-											<div id="dadosMatriz"></div>
-
+										<div class="container-fluid">
 											<div class="row">
 												<div class="col">
-													<button type="button" class="btn btn-primary" id="btnAddLinhaMatriz">
-														Adicionar mais linha
-														<i class="fa fa-plus" aria-hidden="true"></i>
-													</button>
+													<div id="dadosMatriz"></div>
+
+													<div class="row">
+														<div class="col">
+															<button type="button" class="btn btn-primary" id="btnAddLinhaMatriz">
+																<i class="fa fa-plus" aria-hidden="true"></i>
+															</button>
+														</div>
+													</div>
 												</div>
 											</div>
 										</div>
@@ -86,7 +88,7 @@
 				<div class="col col-md-6">
 					<div class="card">
 						<div class="card-header">
-							Grafo
+							<b>Grafo</b>
 						</div>
 						<div class="card-block">
 							<div id="graphDiv"></div>
@@ -98,37 +100,22 @@
 	</body>
 	<script type="text/javascript">
 	window.onload = function() {
-		var grafoMatriz = [	[Infinity, Infinity, 50, Infinity, Infinity],
-							[68, Infinity, Infinity, 7, Infinity],
-							[Infinity, 23, Infinity, Infinity, 11],
-							[Infinity, Infinity, Infinity, Infinity, 5]
+		var grafoMatriz = [	[Infinity, 10],
+							[10, Infinity]
 						];
-		document.getElementById("txtOrigem").addEventListener('change', calculaDistancia);
-		document.getElementById("txtDestino").addEventListener('change', calculaDistancia);
-		document.getElementById("btnAddLinhaMatriz").addEventListener('click', addLinhaMatriz);
 
 		var grafoObj = new Grafo(grafoMatriz);
 		grafoObj.listaGrafo();
 		grafoObj.montaMatrizTela();
 
+		document.getElementById("txtOrigem").addEventListener('change', calculaDistancia);
+		document.getElementById("txtDestino").addEventListener('change', calculaDistancia);
+		document.getElementById("btnAddLinhaMatriz").addEventListener('click', ()=>{grafoObj.aumentaMatriz()});
+
 		function calculaDistancia(){
 			var origem = parseInt(document.getElementById("txtOrigem").value);
 			var destino = parseInt(document.getElementById("txtDestino").value);
 			document.getElementById('resultadoMelhorCaminho').innerHTML = grafoObj.shortestPath(origem, destino);
-		}
-		function addLinhaMatriz(){
-			document.querySelector('#dadosMatriz').innerHTML+=`
-				<div class="row">
-					<div class="col col-xs-1 col-md-2">
-						<input type="text" class="form-control input-sm">
-					</div>
-					<div class="col col-xs-1 col-md-2">
-						<input type="text" class="form-control input-sm">
-					</div>
-					<div class="col col-xs-1 col-md-2">
-						<input type="text" class="form-control input-sm">
-					</div>
-				</div>`;
 		}
 	}
 
@@ -240,21 +227,18 @@
 	};
 	Grafo.prototype.montaMatrizTela = function () {
 		let graphArr = this.grafoMatriz;
+
+		document.querySelector('#dadosMatriz').innerHTML=``;
 		let html='';
 		for (var i = 0; i < graphArr.length; i++) {
-			html+=`<div class="row">`;
+			html+=`<div class="row" id="linha${i}">`;
 			for (var j = 0; j < graphArr[i].length; j++) {
-				html+=`
-					<div class="col col-xs-1 col-md-2">
-						<input type="text" class="form-control input-sm"
-							placeholder="[${i}][${j}]"
-							value="${graphArr[i][j]}"
-							id="node_${i}_${j}">
-					</div>`;
+				html+= getInputValorNode(i, j, graphArr[i][j]);
 			}
 			html+=`</div>`;
 		}
 		document.querySelector('#dadosMatriz').innerHTML+=html;
+
 		for (var i = 0; i < graphArr.length; i++) {
 			for (var j = 0; j < graphArr[i].length; j++) {
 				document.querySelector(`#node_${i}_${j}`).addEventListener('change', (e)=>{
@@ -271,5 +255,34 @@
 			}
 		}
 	};
+	Grafo.prototype.aumentaMatriz = function () {
+		let graphArr = this.grafoMatriz;
+		var i = graphArr.length;
+		var linhaArrNova = [];
+
+		//Adiciona uma linha nova
+		for (var j = 0; j < graphArr[i-1].length; j++) {
+			linhaArrNova[j] = "";
+		}
+		graphArr[i] = linhaArrNova;
+
+		//Adiciona uma coluna nova
+		for (var i = 0; i < graphArr.length; i++) {
+			var j = graphArr[i].length;
+			graphArr[i][j] = "";
+		}
+
+		this.montaMatrizTela();
+		this.grafoMatriz = graphArr;
+	}
+	function getInputValorNode(i, j, val){
+		return `
+			<div class="col col-xs-1 col-md-2 no-padding" id="linha${i}_coluna${j}">
+				<input type="text" class="form-control input-sm"
+					placeholder="[${i}][${j}]"
+					value="${val}"
+					id="node_${i}_${j}">
+			</div>`;
+	}
 	</script>
 </html>
