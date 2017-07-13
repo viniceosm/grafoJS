@@ -122,20 +122,26 @@
 		document.getElementById("btnAddLinhaMatriz").addEventListener('click', ()=>{grafoObj.aumentaMatriz()});
 
 		function calculaDistancia(){
-			var origem = parseInt(document.getElementById("txtOrigem").value);
-			var destino = parseInt(document.getElementById("txtDestino").value);
+			var txtOrigem = document.getElementById("txtOrigem").value;
+			var txtDestino = document.getElementById("txtDestino").value;
 
-			var resultadoMelhorCaminho = grafoObj.menorCaminho(origem, destino);
-			var totalDistancia = resultadoMelhorCaminho.totalDistancia;
-			var caminho = resultadoMelhorCaminho.caminho;
+			document.getElementById('resultadoMelhorCaminho').innerHTML = ``;
+			if(txtDestino.trim()!="" && txtOrigem.trim()!=""){
+				var origem = parseInt(txtOrigem);
+				var destino = parseInt(txtDestino);
 
-			var caminhoTela = [origem];
+				var resultadoMelhorCaminho = grafoObj.menorCaminho(origem, destino);
+				var totalDistancia = resultadoMelhorCaminho.totalDistancia;
+				var caminho = resultadoMelhorCaminho.caminho;
 
-			Object.keys(caminho).forEach((objetoCaminho)=>{
-				caminhoTela.push(caminho[objetoCaminho].j);
-			});
+				var caminhoTela = [origem];
 
-			document.getElementById('resultadoMelhorCaminho').innerHTML = totalDistancia +`<br>`+ caminhoTela.join(' -> ');
+				Object.keys(caminho).forEach((objetoCaminho)=>{
+					caminhoTela.push(caminho[objetoCaminho].j);
+				});
+
+				document.getElementById('resultadoMelhorCaminho').innerHTML = totalDistancia +`<br>`+ caminhoTela.join(' -> ');
+			}
 		}
 	}
 
