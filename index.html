@@ -125,7 +125,7 @@
 			var origem = parseInt(document.getElementById("txtOrigem").value);
 			var destino = parseInt(document.getElementById("txtDestino").value);
 
-			var resultadoMelhorCaminho = grafoObj.shortestPath(origem, destino);
+			var resultadoMelhorCaminho = grafoObj.menorCaminho(origem, destino);
 			var totalDistancia = resultadoMelhorCaminho.totalDistancia;
 			var caminho = resultadoMelhorCaminho.caminho;
 
@@ -146,50 +146,75 @@
 	}
 
 	//Retorna o melhor caminho
-	Grafo.prototype.shortestPath = function(start, dest) {
+	Grafo.prototype.menorCaminho = function(start, dest) {
 		let graphArr = this.grafoMatriz;
-		var current = start,
-			queue = [],
+		var indiceAtual = start,
+			fila = [],
 			path = [],
-			currentDistance = 0,
+			distanciaSoma = 0,
 			visited = [],
 			caminho = [],
+			caminhoFiltrado = [],
 			menorDistanciaPrimeirofor;
 		for (var i = 0; i < graphArr.length; i += 1) {
-			queue[i] = Infinity;
+			fila[i] = Infinity;
 			visited[i] = false;
 		}
-		queue[start] = 0;
+		fila[start] = 0;
 		do {
-			path.push(current);
-			visited[current] = true;
+			path.push(indiceAtual);
+			visited[indiceAtual] = true;
 			for (i = 0; i < graphArr.length; i += 1) {
-				if (currentDistance + graphArr[current][i] < queue[i]) {
-					queue[i] = currentDistance + graphArr[current][i];
+				if (distanciaSoma + graphArr[indiceAtual][i] < fila[i]) {
+					fila[i] = distanciaSoma + graphArr[indiceAtual][i];
 
-					if(typeof menorDistanciaPrimeirofor==='undefined' || menorDistanciaPrimeirofor >= graphArr[current][i]){
-						menorDistanciaPrimeirofor = graphArr[current][i];
-						caminho.push({'i': current, 'j':i});
+					if(typeof menorDistanciaPrimeirofor==='undefined' || menorDistanciaPrimeirofor >= graphArr[indiceAtual][i]){
+						menorDistanciaPrimeirofor = graphArr[indiceAtual][i];
+						caminho.push({'i': indiceAtual, 'j':i, distancia: menorDistanciaPrimeirofor});
 					}
 				}
 			}
 
 			var minDistance = Infinity;
-			current = -1;
+			indiceAtual = -1;
 			for (i = 0; i < graphArr.length; i += 1) {
-				if (queue[i] < minDistance && !visited[i]) {
-					current = i;
-					minDistance = queue[i];
+				if (fila[i] < minDistance && !visited[i]) {
+					indiceAtual = i;
+					minDistance = fila[i];
 				}
 			}
-			currentDistance = minDistance;
-		} while (current !== dest && current !== -1);
-		if (current !== dest && current !== -1) {
+			distanciaSoma = minDistance;
+		} while (indiceAtual !== dest && indiceAtual !== -1);
+		if (indiceAtual !== dest && indiceAtual !== -1) {
 			return Infinity;
 		}
+
+		var indiceDestino = Object.keys(caminho).length-1;
+		caminhoFiltrado.push(caminho[indiceDestino]);
+
+		//faz uma recursivade para filtrar o caminho
+		filtrarCaminho(indiceDestino);
+
+		function filtrarCaminho(indiceDestino){
+			Object.keys(caminho).forEach(function(objetoCaminho){
+				if(caminho[objetoCaminho].j==caminho[indiceDestino].i){
+					caminhoFiltrado.push(caminho[objetoCaminho]);
+					filtrarCaminho(objetoCaminho);
+					return;
+				}
+			});
+		}
+
+		//orderna caminho
+		var caminhoFiltradoTemp = [];
+		for(var i=caminhoFiltrado.length-1; i>=0; i--){
+			caminhoFiltradoTemp.push(caminhoFiltrado[i]);
+		}
+		caminhoFiltrado = caminhoFiltradoTemp;
+
 		var resultado = {
-			'totalDistancia': currentDistance,
-			caminho
+			'totalDistancia': distanciaSoma,
+			caminho: caminhoFiltrado
 		};
 		return resultado;
 	}
@@ -216,7 +241,6 @@
 	Grafo.prototype.listaGrafo = function () {
 		this.graph = Viva.Graph.graph();
 		let graphArr = this.grafoMatriz;
-		var g = this.graph;
 
 		document.getElementById('graphDiv').innerHTML=``;
 
@@ -246,7 +270,7 @@
 		var renderer = Viva.Graph.View.renderer(this.graph, {
 				container: document.getElementById('graphDiv'),
 				graphics  : graphics,
-				layout : layout,
+				layout : layout
 		});
 		renderer.run();
 
