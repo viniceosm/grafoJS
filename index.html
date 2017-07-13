@@ -18,6 +18,13 @@
 			cursor: pointer;
 		}
 		.no-padding{ padding: 0; }
+		input[type="text"].form-control{
+			font-weight: 600;
+		}
+		input[type="text"].form-control::-webkit-input-placeholder{
+			font-weight: normal;
+			color: #d3d3d3;
+		}
 		</style>
 	</head>
 	<body>
@@ -100,8 +107,10 @@
 	</body>
 	<script type="text/javascript">
 	window.onload = function() {
-		var grafoMatriz = [	[Infinity, 10],
-							[10, Infinity]
+		var grafoMatriz = [	[Infinity, 10, 20, Infinity],
+							[10, Infinity, Infinity, 10],
+							[20, Infinity, Infinity, 10],
+							[Infinity, 10, 10, Infinity]
 						];
 
 		var grafoObj = new Grafo(grafoMatriz);
@@ -115,7 +124,18 @@
 		function calculaDistancia(){
 			var origem = parseInt(document.getElementById("txtOrigem").value);
 			var destino = parseInt(document.getElementById("txtDestino").value);
-			document.getElementById('resultadoMelhorCaminho').innerHTML = grafoObj.shortestPath(origem, destino);
+
+			var resultadoMelhorCaminho = grafoObj.shortestPath(origem, destino);
+			var totalDistancia = resultadoMelhorCaminho.totalDistancia;
+			var caminho = resultadoMelhorCaminho.caminho;
+
+			var caminhoTela = [origem];
+
+			Object.keys(caminho).forEach((objetoCaminho)=>{
+				caminhoTela.push(caminho[objetoCaminho].j);
+			});
+
+			document.getElementById('resultadoMelhorCaminho').innerHTML = totalDistancia +`<br>`+ caminhoTela.join(' -> ');
 		}
 	}
 
@@ -132,7 +152,9 @@
 			queue = [],
 			path = [],
 			currentDistance = 0,
-			visited = [];
+			visited = [],
+			caminho = [],
+			menorDistanciaPrimeirofor;
 		for (var i = 0; i < graphArr.length; i += 1) {
 			queue[i] = Infinity;
 			visited[i] = false;
@@ -144,10 +166,14 @@
 			for (i = 0; i < graphArr.length; i += 1) {
 				if (currentDistance + graphArr[current][i] < queue[i]) {
 					queue[i] = currentDistance + graphArr[current][i];
+
+					if(typeof menorDistanciaPrimeirofor==='undefined' || menorDistanciaPrimeirofor >= graphArr[current][i]){
+						menorDistanciaPrimeirofor = graphArr[current][i];
+						caminho.push({'i': current, 'j':i});
+					}
 				}
 			}
 
-			// Could be optimized using fibonacci heap data structure
 			var minDistance = Infinity;
 			current = -1;
 			for (i = 0; i < graphArr.length; i += 1) {
@@ -161,7 +187,11 @@
 		if (current !== dest && current !== -1) {
 			return Infinity;
 		}
-		return currentDistance;
+		var resultado = {
+			'totalDistancia': currentDistance,
+			caminho
+		};
+		return resultado;
 	}
 
 	//Retorna um layout com distancia para o SVG
@@ -169,7 +199,7 @@
 		var quantidadeNode = this.graph.getNodesCount();
 		var middle = this.graph.getNode(parseInt(quantidadeNode/2));
 		middle.isPinned = true;
-		var idealLength = 90;
+		var idealLength = 100;
 		var layout = Viva.Graph.Layout.forceDirected(this.graph, {
 				springLength: idealLength,
 				springCoeff : 0.0008,
@@ -184,7 +214,12 @@
 		return layout;
 	};
 	Grafo.prototype.listaGrafo = function () {
+		this.graph = Viva.Graph.graph();
 		let graphArr = this.grafoMatriz;
+		var g = this.graph;
+
+		document.getElementById('graphDiv').innerHTML=``;
+
 		//Adiciona as ligacoes
 		for (var i = 0; i < graphArr.length; i++) {
 			for (var j = 0; j < graphArr[i].length; j++) {
@@ -201,10 +236,11 @@
 				.attr("width", 15)
 				.attr("height", 15)
 				.attr("id", "no"+node.id)
-				.attr("class", "no")
+				.attr("class", "no")//adiciona class para o ponto do grafo
 				.attr("fill", "#00a2e8");
 			return ui;
 		});
+
 
 		var layout = this.criaLayoutDistancia();
 		var renderer = Viva.Graph.View.renderer(this.graph, {
@@ -214,7 +250,7 @@
 		});
 		renderer.run();
 
-		var nos = document.querySelectorAll('.no');
+		var nos = document.querySelectorAll('.no'); //pega todos os pontos svg
 
 		//Coloca os indices de cada ponto
 		for (var i = 0; i < nos.length; i++) {
@@ -233,7 +269,10 @@
 		for (var i = 0; i < graphArr.length; i++) {
 			html+=`<div class="row" id="linha${i}">`;
 			for (var j = 0; j < graphArr[i].length; j++) {
-				html+= getInputValorNode(i, j, graphArr[i][j]);
+				//valor do input fica vazio se a distancia da ligação for Infinity
+				var val = graphArr[i][j] == Infinity ? '' : graphArr[i][j];
+
+				html+= getInputValorNode(i, j, val);
 			}
 			html+=`</div>`;
 		}
@@ -243,10 +282,19 @@
 			for (var j = 0; j < graphArr[i].length; j++) {
 				document.querySelector(`#node_${i}_${j}`).addEventListener('change', (e)=>{
 					let valorInput = e.target.value;
-					if(isNaN(valorInput)==false || valorInput=="Infinity"){
+					if(isNaN(valorInput)==false //é um numero
+							|| valorInput==''){
 						let aId = e.target.id.split('_');
 						let i = aId[1], j = aId[2];
-						graphArr[i][j] = valorInput;
+
+						let valorTrans = parseInt(valorInput);
+
+						//transforma para Infinity quando for digitado nada
+						if(isNaN(valorTrans)){
+							valorTrans = Infinity;
+						}
+						graphArr[i][j] = valorTrans;
+						this.grafoMatriz = graphArr;
 
 						document.getElementById('graphDiv').innerHTML=``;
 						this.listaGrafo();
@@ -262,14 +310,14 @@
 
 		//Adiciona uma linha nova
 		for (var j = 0; j < graphArr[i-1].length; j++) {
-			linhaArrNova[j] = "";
+			linhaArrNova[j] = Infinity;
 		}
 		graphArr[i] = linhaArrNova;
 
 		//Adiciona uma coluna nova
 		for (var i = 0; i < graphArr.length; i++) {
 			var j = graphArr[i].length;
-			graphArr[i][j] = "";
+			graphArr[i][j] = Infinity;
 		}
 
 		this.montaMatrizTela();
